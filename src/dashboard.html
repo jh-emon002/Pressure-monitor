@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pressure Monitor Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .config-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 20px;
+            align-items: end;
+            flex-wrap: wrap;
+        }
+
+        .config-group {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .config-panel label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .config-panel input {
+            padding: 8px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            width: 100%;
+        }
+
+        .config-panel button {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .config-panel button:hover {
+            background: #5568d3;
+        }
+
+        .unit-toggle {
+            display: flex;
+            gap: 10px;
+            background: #f3f4f6;
+            padding: 5px;
+            border-radius: 8px;
+        }
+
+        .unit-toggle button {
+            flex: 1;
+            padding: 8px 20px;
+            background: transparent;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .unit-toggle button.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .status {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .status.connected {
+            border-left: 5px solid #10b981;
+        }
+
+        .status.disconnected {
+            border-left: 5px solid #ef4444;
+        }
+
+        .channels {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .channel {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .channel.alarm {
+            animation: pulse 1s infinite;
+            border: 3px solid #ef4444;
+        }
+
+        @keyframes pulse {
+            0%, 100% { background: white; }
+            50% { background: #fee2e2; }
+        }
+
+        .channel h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.8em;
+        }
+
+        .pressure-display {
+            font-size: 3em;
+            font-weight: bold;
+            color: #333;
+            margin: 20px 0;
+        }
+
+        .pressure-display .unit {
+            font-size: 0.5em;
+            color: #666;
+        }
+
+        .threshold-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid #eee;
+        }
+
+        .threshold-current {
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+        }
+
+        .threshold-current label {
+            display: block;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .threshold-current .value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .threshold-set {
+            margin-top: 15px;
+        }
+
+        .threshold-set label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: #666;
+        }
+
+        .threshold-input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .threshold-set input {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        .threshold-set button {
+            padding: 10px 25px;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .threshold-set button:hover {
+            background: #059669;
+        }
+
+        .alarm-indicator {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #d1d5db;
+        }
+
+        .alarm-indicator.active {
+            background: #ef4444;
+            box-shadow: 0 0 10px #ef4444;
+        }
+
+        .event-log {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .event-log h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .event-log-content {
+            max-height: 300px;
+            overflow-y: auto;
+            background: #f9fafb;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        .event-item {
+            padding: 8px;
+            border-left: 3px solid #667eea;
+            margin-bottom: 8px;
+            background: white;
+            border-radius: 3px;
+        }
+
+        .event-item.return-normal {
+            border-left-color: #10b981;
+        }
+
+        .event-item.threshold-cross {
+            border-left-color: #ef4444;
+        }
+
+        .download-btn {
+            margin-top: 15px;
+            padding: 12px 30px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+
+        .download-btn:hover {
+            background: #5568d3;
+        }
+
+        .error-message {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Pressure Monitor Dashboard</h1>
+
+        <div class="config-panel">
+            <div class="config-group">
+                <label for="esp32IP">ESP32 IP Address:</label>
+                <input type="text" id="esp32IP" placeholder="192.168.1.100" value="">
+            </div>
+            <div class="config-group">
+                <button onclick="saveIP()">Connect</button>
+            </div>
+            <div class="config-group">
+                <label>Display Unit:</label>
+                <div class="unit-toggle">
+                    <button id="unitKpa" class="active" onclick="setUnit('kpa')">kPa</button>
+                    <button id="unitMmhg" onclick="setUnit('mmhg')">mmHg</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="errorMsg" class="error-message"></div>
+
+        <div id="statusBar" class="status disconnected">
+            <strong>Status:</strong> <span id="statusText">Disconnected</span> | 
+            <strong>Last Update:</strong> <span id="lastUpdate">Never</span>
+        </div>
+
+        <div class="channels">
+            <div id="channel1" class="channel">
+                <div class="alarm-indicator" id="alarm1"></div>
+                <h2>Channel 1</h2>
+                <div class="pressure-display">
+                    <span id="pressure1">--</span>
+                    <span class="unit" id="unit1">kPa</span>
+                </div>
+                
+                <div class="threshold-section">
+                    <!-- Current Threshold Display -->
+                    <div class="threshold-current">
+                        <label>Current Threshold</label>
+                        <div class="value">
+                            <span id="currentThreshold1">--</span>
+                            <span style="font-size: 16px; color: #666;" id="currentUnit1">kPa</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Set New Threshold -->
+                    <div class="threshold-set">
+                        <label>Set New Threshold:</label>
+                        <div class="threshold-input-group">
+                            <input type="number" id="newThreshold1" step="0.1" placeholder="Enter new threshold">
+                            <span id="thresholdUnit1">kPa</span>
+                            <button onclick="setThreshold(1)">Update</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="channel2" class="channel">
+                <div class="alarm-indicator" id="alarm2"></div>
+                <h2>Channel 2</h2>
+                <div class="pressure-display">
+                    <span id="pressure2">--</span>
+                    <span class="unit" id="unit2">kPa</span>
+                </div>
+                
+                <div class="threshold-section">
+                    <!-- Current Threshold Display -->
+                    <div class="threshold-current">
+                        <label>Current Threshold</label>
+                        <div class="value">
+                            <span id="currentThreshold2">--</span>
+                            <span style="font-size: 16px; color: #666;" id="currentUnit2">kPa</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Set New Threshold -->
+                    <div class="threshold-set">
+                        <label>Set New Threshold:</label>
+                        <div class="threshold-input-group">
+                            <input type="number" id="newThreshold2" step="0.1" placeholder="Enter new threshold">
+                            <span id="thresholdUnit2">kPa</span>
+                            <button onclick="setThreshold(2)">Update</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="event-log">
+            <h2>Event Log</h2>
+            <div class="event-log-content" id="eventLog">
+                <p style="color: #999;">No events yet...</p>
+            </div>
+            <button class="download-btn" onclick="downloadLog()">
+                Download Excel Log (CSV)
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let esp32IP = localStorage.getItem('esp32IP') || '';
+        let updateInterval;
+        let currentUnit = localStorage.getItem('displayUnit') || 'kpa';
+
+        // Load saved IP and unit on page load
+        if (esp32IP) {
+            document.getElementById('esp32IP').value = esp32IP;
+            startPolling();
+        }
+
+        // Set initial unit
+        setUnit(currentUnit);
+
+        function saveIP() {
+            esp32IP = document.getElementById('esp32IP').value;
+            localStorage.setItem('esp32IP', esp32IP);
+            
+            if (esp32IP) {
+                showError('');
+                startPolling();
+            }
+        }
+
+        function setUnit(unit) {
+            currentUnit = unit;
+            localStorage.setItem('displayUnit', unit);
+            
+            // Update button styles
+            document.getElementById('unitKpa').classList.remove('active');
+            document.getElementById('unitMmhg').classList.remove('active');
+            
+            if (unit === 'kpa') {
+                document.getElementById('unitKpa').classList.add('active');
+            } else {
+                document.getElementById('unitMmhg').classList.add('active');
+            }
+            
+            // Update all unit labels
+            document.querySelectorAll('.unit').forEach(el => {
+                el.textContent = unit === 'kpa' ? 'kPa' : 'mmHg';
+            });
+            
+            document.querySelectorAll('[id^="currentUnit"]').forEach(el => {
+                el.textContent = unit === 'kpa' ? 'kPa' : 'mmHg';
+            });
+            
+            document.querySelectorAll('[id^="thresholdUnit"]').forEach(el => {
+                el.textContent = unit === 'kpa' ? 'kPa' : 'mmHg';
+            });
+        }
+
+        function startPolling() {
+            if (updateInterval) {
+                clearInterval(updateInterval);
+            }
+            
+            updateData(); // Initial fetch
+            updateInterval = setInterval(updateData, 1000); // Update every second
+        }
+
+        function updateData() {
+            if (!esp32IP) return;
+
+            fetch(`http://${esp32IP}/data`)
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.json();
+                })
+                .then(data => {
+                    // Update status
+                    document.getElementById('statusBar').className = 'status connected';
+                    document.getElementById('statusText').textContent = 'Connected';
+                    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+                    showError('');
+
+                    // Update pressure readings and current thresholds based on selected unit
+                    if (currentUnit === 'kpa') {
+                        document.getElementById('pressure1').textContent = data.p1_kpa.toFixed(1);
+                        document.getElementById('pressure2').textContent = data.p2_kpa.toFixed(1);
+                        document.getElementById('currentThreshold1').textContent = data.threshold1_kpa.toFixed(1);
+                        document.getElementById('currentThreshold2').textContent = data.threshold2_kpa.toFixed(1);
+                    } else {
+                        document.getElementById('pressure1').textContent = data.p1_mmhg.toFixed(0);
+                        document.getElementById('pressure2').textContent = data.p2_mmhg.toFixed(0);
+                        document.getElementById('currentThreshold1').textContent = data.threshold1_mmhg.toFixed(0);
+                        document.getElementById('currentThreshold2').textContent = data.threshold2_mmhg.toFixed(0);
+                    }
+
+                    // Update alarm indicators
+                    const alarm1El = document.getElementById('alarm1');
+                    const alarm2El = document.getElementById('alarm2');
+                    const ch1El = document.getElementById('channel1');
+                    const ch2El = document.getElementById('channel2');
+
+                    if (data.alarm1) {
+                        alarm1El.classList.add('active');
+                        ch1El.classList.add('alarm');
+                    } else {
+                        alarm1El.classList.remove('active');
+                        ch1El.classList.remove('alarm');
+                    }
+
+                    if (data.alarm2) {
+                        alarm2El.classList.add('active');
+                        ch2El.classList.add('alarm');
+                    } else {
+                        alarm2El.classList.remove('active');
+                        ch2El.classList.remove('alarm');
+                    }
+
+                    // Update event log with color coding
+                    if (data.events && data.events.length > 0) {
+                        const logHTML = data.events.reverse().map(event => {
+                            let className = 'event-item';
+                            if (event.includes('returned to normal')) {
+                                className += ' return-normal';
+                            } else if (event.includes('crossed threshold')) {
+                                className += ' threshold-cross';
+                            }
+                            return `<div class="${className}">${event}</div>`;
+                        }).join('');
+                        document.getElementById('eventLog').innerHTML = logHTML;
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('statusBar').className = 'status disconnected';
+                    document.getElementById('statusText').textContent = 'Disconnected';
+                    showError('Unable to connect to ESP32. Check IP address and network connection.');
+                    console.error('Error:', error);
+                });
+        }
+
+        function setThreshold(channel) {
+            if (!esp32IP) {
+                showError('Please set ESP32 IP address first');
+                return;
+            }
+
+            const value = document.getElementById(`newThreshold${channel}`).value;
+            
+            if (!value || value === '') {
+                showError('Please enter a threshold value');
+                return;
+            }
+
+            fetch(`http://${esp32IP}/set?ch=${channel}&value=${value}&unit=${currentUnit}`)
+                .then(response => {
+                    if (!response.ok) throw new Error('Failed to set threshold');
+                    console.log(`Threshold ${channel} set to ${value} ${currentUnit}`);
+                    
+                    // Clear the input field after successful update
+                    document.getElementById(`newThreshold${channel}`).value = '';
+                    
+                    // Force immediate data refresh to show new threshold
+                    updateData();
+                })
+                .catch(error => {
+                    showError('Failed to set threshold');
+                    console.error('Error:', error);
+                });
+        }
+
+        function downloadLog() {
+            if (!esp32IP) {
+                showError('Please set ESP32 IP address first');
+                return;
+            }
+
+            window.location.href = `http://${esp32IP}/download`;
+        }
+
+        function showError(message) {
+            const errorEl = document.getElementById('errorMsg');
+            if (message) {
+                errorEl.textContent = message;
+                errorEl.style.display = 'block';
+            } else {
+                errorEl.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
