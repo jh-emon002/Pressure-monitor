@@ -174,9 +174,6 @@ These settings survive complete power loss and are restored on startup.
 - Display: 16x2 LCD (I2C)
 
 
-## License
-
-This project is submitted as part of FSMB EE Recruitment FEB 2026 Phase 2 Technical Assessment.
 
 ## Author
 
